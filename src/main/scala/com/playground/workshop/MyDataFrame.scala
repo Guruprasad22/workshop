@@ -2,10 +2,9 @@ package com.playground.workshop
 
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
-import org.apache.avro.generic.GenericData.StringType
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.StructType;
-import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.{StructType,StructField,StringType};
 import org.apache.spark.sql.Row;
 
 
@@ -39,8 +38,16 @@ object MyDataFrame {
     }
     
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+    import sqlContext.implicits._
+
     val empRdd = sc.textFile(empPath)
     val depRdd = sc.textFile(depPath)
+    
+    /*case class Employee(id: Int, name: String, deptId: Int)
+    case class Department(id: Int, name: String)
+    
+    val empDF = empRdd.map(_.split(",")).map(rec => Employee(rec(0),rec(1),rec(2)).toDF()
+    val deptDF = depRdd.map(_.split(",")).map(x => Department(x(0),x(1)).toDF*/
     
     val empSchemaString = "id name deptId"
     val deptSchemaString = "id name"
@@ -48,12 +55,12 @@ object MyDataFrame {
     val deptSchema = StructType(deptSchemaString.split(" ").map(fieldName => StructField(fieldName, StringType, true)))
 
     //Convert records of the RDD (people) to Rows.
-    val rowEmpRDD = empRdd.map(_.split(",")).map(rec => Row(rec(0), rec(1), rec(2)))
-    val rowDeptRDD = deptSchema.map(_.split(",")).map(rec => Row(rec(0), rec(1)))
+    val rowEmpRDD = empRdd.map(x => x.split(",")).map(rec => Row(rec(0), rec(1), rec(2)))
+    val rowDeptRDD = depRdd.map(x => x.split(",")).map(rec => Row(rec(0), rec(1)))
 
     // Apply the schema to the RDD.
     val empDF = sqlContext.createDataFrame(rowEmpRDD, empSchema)
-    val deptDF = sqlContext.createDataFrame(depRdd, deptSchema)
+    val deptDF = sqlContext.createDataFrame(rowDeptRDD, deptSchema)
     
     empDF.show()
     deptDF.show()
